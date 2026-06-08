@@ -4,9 +4,10 @@
  *  - ALWAYS posts readings to Supabase  (feeds the Vercel dashboard)
  *  - OPTIONALLY also publishes to AWS IoT Core (feeds your Node-RED)
  *
- *  Per-node config is in secrets.h:
- *     DEVICE_ID   unique per node
- *     ENABLE_AWS  1 on your node, 0 on student nodes
+ *  Status LED (GPIO2 onboard):
+ *    - searching for WiFi : fast blink
+ *    - connected & idle   : two short blinks every 20 s ("alive")
+ *    - on each send       : three quick flashes ("transmitting")
  *
  *  Mapping: DHT11 temperature -> body_temp,  humidity -> heart_rate
  * ============================================================
@@ -28,23 +29,51 @@
 
 #define DHTPIN  4
 #define DHTTYPE DHT11
-#define SEND_INTERVAL_MS 120000UL
-/* 
-10 minutes = 10 × 60 × 1000 = 600000 → #define SEND_INTERVAL_MS 600000UL
-(Your current 30000UL is 30 seconds: 30 × 1000.)
-*/
+#define LED_PIN 2                  // onboard LED on most ESP32 DevKits
+#define SEND_INTERVAL_MS 180000UL  // 3 minutes  (minutes x 60000)
 
 WiFiMulti     wifiMulti;
 DHT           dht(DHTPIN, DHTTYPE);
 unsigned long lastSend = 0;
+
+/* ---------- non-blocking status LED ---------- */
+void updateLED() {
+  static unsigned long t0 = 0;
+  static bool inSeq = false;
+  unsigned long now = millis();
+
+  if (WiFi.status() != WL_CONNECTED) {
+    digitalWrite(LED_PIN, (now / 200) % 2);   // fast blink while searching
+    inSeq = false;
+    return;
+  }
+  // connected: two short blinks every 20 s
+  if (!inSeq && now - t0 >= 20000) { inSeq = true; t0 = now; }
+  if (inSeq) {
+    unsigned long t = now - t0;
+    if      (t < 100) digitalWrite(LED_PIN, HIGH);
+    else if (t < 220) digitalWrite(LED_PIN, LOW);
+    else if (t < 320) digitalWrite(LED_PIN, HIGH);
+    else { digitalWrite(LED_PIN, LOW); inSeq = false; }
+  }
+}
+
+/* three quick flashes to confirm a transmission */
+void blinkTransmit() {
+  for (int i = 0; i < 5; i++) {
+    digitalWrite(LED_PIN, HIGH); delay(60);
+    digitalWrite(LED_PIN, LOW);  delay(60);
+  }
+}
 
 void connectWiFi() {
   Serial.println("Connecting WiFi...");
   WiFi.mode(WIFI_STA);
   unsigned long start = millis();
   while (wifiMulti.run(10000) != WL_CONNECTED && millis() - start < 40000) {
+    updateLED();
     Serial.print(".");
-    delay(500);
+    delay(200);
   }
   if (WiFi.status() == WL_CONNECTED)
     Serial.printf("\nWiFi OK: \"%s\"  IP=%s\n",
@@ -100,6 +129,8 @@ void connectAWS() {
 void setup() {
   Serial.begin(115200);
   delay(1000);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
   Serial.printf("\n=== IoMT node: %s ===\n", DEVICE_ID);
   dht.begin();
 
@@ -114,6 +145,8 @@ void setup() {
 }
 
 void loop() {
+  updateLED();                                  // heartbeat, every loop (non-blocking)
+
   if (WiFi.status() != WL_CONNECTED) connectWiFi();
 
 #if ENABLE_AWS
@@ -123,14 +156,13 @@ void loop() {
 
   if (WiFi.status() == WL_CONNECTED && millis() - lastSend > SEND_INTERVAL_MS) {
     lastSend = millis();
-    float bodyTemp  = dht.readTemperature();   // -> body_temp
-    float heartRate = dht.readHumidity();      // -> heart_rate (stand-in for HR)
+    float bodyTemp  = dht.readTemperature();    // -> body_temp
+    float heartRate = dht.readHumidity();       // -> heart_rate (stand-in for HR)
     if (isnan(bodyTemp) || isnan(heartRate)) { Serial.println("DHT read failed"); return; }
 
-    // (1) EVERYONE: send to Supabase -> Vercel dashboard
-    postToSupabase(bodyTemp, heartRate);
-
-    // (2) YOUR NODE ONLY: also publish to AWS -> Node-RED
+    // (1) AWS FIRST — publish while the MQTT connection is still healthy.
+    //     Doing Supabase's TLS handshake first can drop this connection,
+    //     which is exactly why AWS / Node-RED had stopped receiving.
 #if ENABLE_AWS
     if (awsClient.connected()) {
       char payload[160];
@@ -138,8 +170,14 @@ void loop() {
         "{\"thing\":\"%s\",\"temperature\":%.1f,\"humidity\":%.1f}",
         THING_NAME, bodyTemp, heartRate);
       awsClient.publish(MQTT_TOPIC, payload);
+      awsClient.loop();                          // flush the publish
       Serial.printf("[AWS] published: %s\n", payload);
     }
 #endif
+
+    // (2) Supabase SECOND.
+    postToSupabase(bodyTemp, heartRate);
+
+    blinkTransmit();                             // visual "data sent"
   }
 }
