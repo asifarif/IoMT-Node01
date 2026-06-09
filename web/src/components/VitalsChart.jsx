@@ -10,7 +10,7 @@ export default function VitalsChart({ data, keys }) {
     keys.forEach(k => { o[k] = r[k] != null ? Number(r[k]) : null })
     return o
   })
-  if (chartData.length === 0) return <p className="empty">Waiting for data\u2026</p>
+  if (chartData.length === 0) return <p className="empty">Waiting for data…</p>
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 0, left: -10 }}>

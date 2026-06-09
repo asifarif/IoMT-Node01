@@ -4,7 +4,7 @@ import EditPatientForm from './EditPatientForm'
 import ManualEntryForm from './ManualEntryForm'
 import { VITAL_TYPES, fmt, checkAlarm } from '../lib/vitals'
 
-export default function NodeDetail({ node, readings, manual, onBack, iomt }) {
+export default function NodeDetail({ node, readings, manual, now, onBack, iomt }) {
   const { device_id, patient, latest } = node
   const [editing, setEditing] = useState(false)
 
@@ -31,8 +31,8 @@ export default function NodeDetail({ node, readings, manual, onBack, iomt }) {
   return (
     <div className="detail">
       <div className="detail-top">
-        <button className="btn" onClick={onBack}>\u2190 Back</button>
-        <h2>Vitals \u2014 {title}</h2>
+        <button className="btn" onClick={onBack}>← Back</button>
+        <h2>Vitals — {title}</h2>
         <div className="detail-actions">
           <button className="btn" onClick={() => setEditing(true)} disabled={!iomt.ready}>
             {patient ? 'Edit / thresholds' : 'Register node'}
@@ -43,7 +43,7 @@ export default function NodeDetail({ node, readings, manual, onBack, iomt }) {
         </div>
       </div>
 
-      {alarm && <div className="alarm-banner">\u26A0 {reasons.join(' \u00B7 ')}</div>}
+      {alarm && <div className="alarm-banner">⚠ {reasons.join(' · ')}</div>}
 
       <div className="detail-grid">
         <section className="panel panel-wide">
