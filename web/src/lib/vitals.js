@@ -1,9 +1,9 @@
 // Single source of truth for vital types — add one here and it flows
 // through the readout, charts, and manual-entry form automatically.
 export const VITAL_TYPES = [
-  { key: 'heart_rate', label: 'Heart rate',   unit: 'bpm',   source: 'device', decimals: 0, color: '#f4716b' },
-  { key: 'body_temp',  label: 'Body temp',    unit: '\u00B0C',source: 'device', decimals: 1, color: '#0e7c86' },
-  { key: 'spo2',       label: 'SpO\u2082',     unit: '%',     source: 'device', decimals: 0, color: '#3fb8ae' },
+  { key: 'heart_rate', label: 'Heart rate',   cardLabel: 'HR',   unit: 'bpm',   source: 'device', decimals: 0, color: '#e16417' },
+  { key: 'body_temp',  label: 'Body temp',    cardLabel: 'temp', unit: '\u00B0C',source: 'device', decimals: 1, color: '#2140ae' },
+  { key: 'spo2',       label: 'SpO\u2082',     cardLabel: 'SpO\u2082', unit: '%',     source: 'device', decimals: 0, color: '#0e7c38' },
   { key: 'bp_sys',     label: 'BP systolic',  unit: 'mmHg',  source: 'manual', decimals: 0, color: '#9467bd' },
   { key: 'bp_dia',     label: 'BP diastolic', unit: 'mmHg',  source: 'manual', decimals: 0, color: '#8c564b' },
   { key: 'glucose',    label: 'Glucose',      unit: 'mg/dL', source: 'manual', decimals: 0, color: '#f4a340' },

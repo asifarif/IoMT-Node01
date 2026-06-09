@@ -1,4 +1,6 @@
-import { nodeState, lastSeenLabel, fmt } from '../lib/vitals'
+import { VITAL_TYPES, nodeState, lastSeenLabel, fmt } from '../lib/vitals'
+
+const CARD_VITAL_TYPES = VITAL_TYPES.filter(v => v.source === 'device')
 
 export default function NodeCard({
   node, now, onOpen, canDrag, dragging, over,
@@ -23,23 +25,28 @@ export default function NodeCard({
       <div className="card-head">
         {canDrag && (
           <span className="grip" draggable onDragStart={onDragStart} onDragEnd={onDragEnd}
-                onClick={(e) => e.stopPropagation()} title="Drag to reorder">⠿</span>
+                onClick={(e) => e.stopPropagation()} title="Drag to reorder">{'\u283F'}</span>
         )}
         <span className={`dot dot--${state}`} />
         <strong>{name}</strong>
         <span className="bed">{patient?.bed || ''}</span>
       </div>
-      <div className="card-meta">{device_id}{patient?.mrn ? ` · MRN ${patient.mrn}` : ''}</div>
+      <div className="card-meta">{device_id}{patient?.mrn ? ` \u00B7 MRN ${patient.mrn}` : ''}</div>
       <div className="card-vitals">
-        <div className="vital"><span className="v">{fmt(latest?.heart_rate, 0)}</span><span className="u">bpm HR</span></div>
-        <div className="vital"><span className="v">{fmt(latest?.body_temp, 1)}</span><span className="u">°C temp</span></div>
-        <div className="vital"><span className="v">{fmt(latest?.spo2, 0)}</span><span className="u">% SpO₂</span></div>
+        {CARD_VITAL_TYPES.map(vt => (
+          <div className="vital" key={vt.key}>
+            <span className="v" style={{ '--vital-color': vt.color }}>
+              {fmt(latest?.[vt.key], vt.decimals)}
+            </span>
+            <span className="u">{vt.unit} {vt.cardLabel || vt.label}</span>
+          </div>
+        ))}
       </div>
       <div className="card-foot">
         {state === 'inactive'
-          ? <span className="inactive-text">inactive · {lastSeenLabel(lastSeenMs)}</span>
+          ? <span className="inactive-text">{`inactive \u00B7 ${lastSeenLabel(lastSeenMs)}`}</span>
           : state === 'alarm'
-            ? <span className="alarm-text">{reasons.join(' · ')}</span>
+            ? <span className="alarm-text">{reasons.join(' \u00B7 ')}</span>
             : <span>stable</span>}
         <span className="seen">
           {state !== 'inactive' && latest ? new Date(latest.recorded_at).toLocaleTimeString() : ''}
