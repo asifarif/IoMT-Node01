@@ -1,91 +1,74 @@
-import { useEffect, useState, useMemo } from 'react'
-import { supabase } from './lib/supabase'
-import PatientCard from './components/PatientCard'
-import VitalsChart from './components/VitalsChart'
-
-const MAX_CHART_POINTS = 60
+import { useState, useMemo } from 'react'
+import { useIomt } from './hooks/useIomt'
+import Dashboard from './components/Dashboard'
+import NodeDetail from './components/NodeDetail'
+import SearchBar from './components/SearchBar'
 
 export default function App() {
-  const [patients, setPatients] = useState([])
-  const [readings, setReadings] = useState([])   // recent vitals, all devices
-  const [selected, setSelected] = useState(null) // selected device_id
+  const iomt = useIomt()
+  const { patients, readings, manual, ready } = iomt
+  const [query, setQuery] = useState('')
+  const [openDevice, setOpenDevice] = useState(null)
 
-  useEffect(() => {
-    let active = true
+  const patientByDevice = useMemo(() => {
+    const m = {}; patients.forEach(p => { if (p.device_id) m[p.device_id] = p }); return m
+  }, [patients])
 
-    async function load() {
-      const { data: pats } = await supabase
-        .from('patients').select('*').order('bed')
-      const { data: vit } = await supabase
-        .from('vitals').select('*')
-        .order('recorded_at', { ascending: false })
-        .limit(500)
-
-      if (!active) return
-      setPatients(pats || [])
-      setReadings((vit || []).reverse())          // oldest -> newest for charting
-      if (pats && pats.length) setSelected((s) => s || pats[0].device_id)
-    }
-    load()
-
-    // Realtime: push every new vitals row into state as it arrives
-    const channel = supabase
-      .channel('vitals-stream')
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'vitals' },
-        (payload) => {
-          setReadings((prev) => [...prev, payload.new].slice(-2000))
-        })
-      .subscribe()
-
-    return () => { active = false; supabase.removeChannel(channel) }
-  }, [])
-
-  // latest reading per device_id
-  const latestByDevice = useMemo(() => {
-    const map = {}
-    for (const r of readings) map[r.device_id] = r
-    return map
+  const latestVitals = useMemo(() => {
+    const m = {}; readings.forEach(r => { m[r.device_id] = r }); return m
   }, [readings])
 
-  const selectedSeries = useMemo(
-    () => readings.filter((r) => r.device_id === selected).slice(-MAX_CHART_POINTS),
-    [readings, selected]
-  )
+  const latestManual = useMemo(() => {
+    const m = {}; manual.forEach(e => { (m[e.device_id] ||= {})[e.kind] = e.value }); return m
+  }, [manual])
+
+  // AUTO-DISCOVERY: a node exists if it appears in patients OR has sent any vitals.
+  const deviceIds = useMemo(() => {
+    const s = new Set()
+    patients.forEach(p => p.device_id && s.add(p.device_id))
+    readings.forEach(r => s.add(r.device_id))
+    return [...s].sort()
+  }, [patients, readings])
+
+  const nodes = useMemo(() => deviceIds.map(id => ({
+    device_id: id,
+    patient: patientByDevice[id] || null,
+    latest: latestVitals[id] || null,
+    manual: latestManual[id] || {},
+  })), [deviceIds, patientByDevice, latestVitals, latestManual])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return nodes
+    return nodes.filter(n =>
+      n.device_id.toLowerCase().includes(q) ||
+      (n.patient?.full_name || '').toLowerCase().includes(q) ||
+      (n.patient?.mrn || '').toLowerCase().includes(q))
+  }, [nodes, query])
+
+  const openNode = openDevice ? nodes.find(n => n.device_id === openDevice) : null
 
   return (
     <div className="app">
       <header className="topbar">
         <div>
           <h1>IoMT Telemedicine Dashboard</h1>
-          <p className="sub">Live patient vitals · MVP3</p>
+          <p className="sub">{nodes.length} node{nodes.length !== 1 ? 's' : ''} \u00B7 live</p>
         </div>
-        <span className="live">live</span>
+        <SearchBar value={query} onChange={setQuery} />
       </header>
 
-      <section className="cards">
-        {patients.length === 0 && (
-          <p className="empty">No patients yet — add one in Supabase, then power on a node.</p>
-        )}
-        {patients.map((p) => (
-          <PatientCard
-            key={p.device_id}
-            patient={p}
-            latest={latestByDevice[p.device_id]}
-            active={selected === p.device_id}
-            onSelect={() => setSelected(p.device_id)}
-          />
-        ))}
-      </section>
+      {!ready && <div className="warn">Supabase not configured \u2014 set <code>web/.env.local</code> and restart.</div>}
 
-      <section className="panel">
-        <h2>{selected ? `Vitals — ${selected}` : 'Select a patient'}</h2>
-        <VitalsChart data={selectedSeries} />
-      </section>
+      {openNode ? (
+        <NodeDetail node={openNode} readings={readings} manual={manual}
+                    onBack={() => setOpenDevice(null)} iomt={iomt} />
+      ) : (
+        <Dashboard nodes={filtered} totalNodes={nodes.length}
+                   onOpen={setOpenDevice} iomt={iomt} />
+      )}
 
-      <footer className="foot">
-        IoMT teaching prototype — not a medical device.
-      </footer>
+      <footer className="foot">IoMT teaching prototype \u2014 not a medical device.</footer>
     </div>
   )
 }
