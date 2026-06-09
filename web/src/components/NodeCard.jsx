@@ -16,8 +16,8 @@ export default function NodeCard({ node, onOpen }) {
       <div className="card-meta">{device_id}{patient?.mrn ? ` \u00B7 MRN ${patient.mrn}` : ''}</div>
       <div className="card-vitals">
         <div className="vital"><span className="v">{fmt(latest?.heart_rate, 0)}</span><span className="u">bpm HR</span></div>
-        <div className="vital"><span className="v">{fmt(latest?.body_temp, 1)}</span><span className="u">\u00B0C temp</span></div>
-        <div className="vital"><span className="v">{fmt(latest?.spo2, 0)}</span><span className="u">% SpO\u2082</span></div>
+        <div className="vital"><span className="v">{fmt(latest?.body_temp, 1)}</span><span className="u">°C temp</span></div>
+        <div className="vital"><span className="v">{fmt(latest?.spo2, 0)}</span><span className="u">% SpO2</span></div>
       </div>
       <div className="card-foot">
         {alarm ? <span className="alarm-text">{reasons.join(' \u00B7 ')}</span> : <span>stable</span>}

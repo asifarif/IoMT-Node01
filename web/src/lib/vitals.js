@@ -2,8 +2,8 @@
 // flows through the readout + charts automatically (clean expansion hook).
 export const VITAL_TYPES = [
   { key: 'heart_rate', label: 'Heart rate',   unit: 'bpm',   source: 'device', decimals: 0, color: '#f4716b' },
-  { key: 'body_temp',  label: 'Body temp',    unit: '\u00B0C',source: 'device', decimals: 1, color: '#0e7c86' },
-  { key: 'spo2',       label: 'SpO\u2082',     unit: '%',     source: 'device', decimals: 0, color: '#3fb8ae' },
+  { key: 'body_temp',  label: 'Body temp',    unit: '°C',    source: 'device', decimals: 1, color: '#0e7c86' },
+  { key: 'spo2',       label: 'SpO2',         unit: '%',     source: 'device', decimals: 0, color: '#3fb8ae' },
   { key: 'bp_sys',     label: 'BP systolic',  unit: 'mmHg',  source: 'manual', decimals: 0, color: '#9467bd' },
   { key: 'bp_dia',     label: 'BP diastolic', unit: 'mmHg',  source: 'manual', decimals: 0, color: '#8c564b' },
   { key: 'glucose',    label: 'Glucose',      unit: 'mg/dL', source: 'manual', decimals: 0, color: '#f4a340' },
