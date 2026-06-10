@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import VitalsChart from './VitalsChart'
 import EditPatientForm from './EditPatientForm'
 import ManualEntryForm from './ManualEntryForm'
-import { VITAL_TYPES, fmt, checkAlarm } from '../lib/vitals'
+import { VITAL_TYPES, fmt, checkAlarm, getThresholds } from '../lib/vitals'
 
 export default function NodeDetail({ node, readings, manual, now, onBack, iomt }) {
   const { device_id, patient, latest } = node
@@ -18,7 +18,11 @@ export default function NodeDetail({ node, readings, manual, now, onBack, iomt }
     return m
   }, [manual, device_id])
 
-  const { alarm, reasons } = checkAlarm(patient, latest)
+  const { alarm, breaches } = checkAlarm(patient, latest)
+  const thr = getThresholds(patient)
+  const breachText = Object.entries(breaches)
+    .map(([k, dir]) => `${VITAL_TYPES.find(v => v.key === k)?.label || k} ${dir.toUpperCase()}`)
+    .join(' · ')
   const title = patient?.full_name ? `${patient.full_name} (${device_id})` : device_id
 
   async function handleDelete() {
@@ -43,7 +47,7 @@ export default function NodeDetail({ node, readings, manual, now, onBack, iomt }
         </div>
       </div>
 
-      {alarm && <div className="alarm-banner">⚠ {reasons.join(' · ')}</div>}
+      {alarm && <div className="alarm-banner">⚠ {breachText}</div>}
 
       <div className="detail-grid">
         <section className="panel panel-wide">
@@ -64,6 +68,9 @@ export default function NodeDetail({ node, readings, manual, now, onBack, iomt }
               )
             })}
           </div>
+          <p className="hint">
+            Alarm limits — HR {thr.hr_min}–{thr.hr_max} bpm · Temp {thr.temp_min}–{thr.temp_max} °C
+          </p>
         </section>
 
         <section className="panel">

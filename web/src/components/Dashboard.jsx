@@ -2,7 +2,7 @@ import { useState } from 'react'
 import NodeCard from './NodeCard'
 import AddNodeForm from './AddNodeForm'
 
-export default function Dashboard({ nodes, totalNodes, now, canDrag, onReorder, onOpen, iomt }) {
+export default function Dashboard({ nodes, totalNodes, now, canDrag, onReorder, onOpen, iomt, mutedDevices, onToggleMute }) {
   const [adding, setAdding] = useState(false)
   const [dragId, setDragId] = useState(null)
   const [overId, setOverId] = useState(null)
@@ -40,6 +40,7 @@ export default function Dashboard({ nodes, totalNodes, now, canDrag, onReorder, 
           <NodeCard
             key={n.device_id} node={n} now={now} onOpen={() => onOpen(n.device_id)}
             canDrag={canDrag}
+            muted={mutedDevices?.has(n.device_id)} onToggleMute={onToggleMute}
             dragging={dragId === n.device_id} over={overId === n.device_id}
             onDragStart={(e) => {
               e.dataTransfer.effectAllowed = 'move'

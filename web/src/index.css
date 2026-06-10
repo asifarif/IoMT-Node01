@@ -47,12 +47,33 @@ body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-seri
 .card-foot { margin-top:12px; font-size:12px; color:var(--muted); display:flex; justify-content:space-between; gap:8px; }
 .alarm-text { color:#b3322c; font-weight:600; }
 
-/* flashing red outline when out of range */
+/* Alarming card: pulsing red outline (~1.5 Hz). Runs together with the
+   per-value colour blink below. Never gated by mute — mute is audio only. */
 @keyframes alarmFlash {
   0%,100% { box-shadow:0 0 0 2px var(--danger); }
-  50%     { box-shadow:0 0 0 5px rgba(244,113,107,.30); }
+  50%     { box-shadow:0 0 0 5px rgba(247, 185, 185, 0.5); }
 }
-.card--alarm { border-color:var(--danger); animation:alarmFlash 1s ease-in-out infinite; }
+.card--alarm { border-color:var(--danger); background:#fff7f6; animation:alarmFlash 1.1s ease-in-out infinite; }
+
+/* Colour-toggle blink on the SPECIFIC out-of-range value. */
+@keyframes valueBlink { 0%,49% { color: var(--teal-dark) }
+                        50%,100% { color: var(--danger) } }
+.vital-val { display:flex; align-items:flex-start; gap:5px; }
+.v--alarm { animation: valueBlink 2.5s steps(1) infinite; }
+
+/* HIGH / LOW chip next to the blinking value */
+.vchip { font-size:10px; font-weight:700; letter-spacing:.04em; line-height:1;
+  padding:3px 5px; border-radius:6px; margin-top:4px; color:#fff; }
+.vchip--high { background:var(--danger); }
+.vchip--low  { background:#2140ae; }
+
+/* Per-card bell — INDIVIDUAL audio mute (slashed when muted) */
+.card-bell { margin-left:6px; padding:2px; border:none; background:transparent; cursor:pointer;
+  color:var(--danger); display:inline-flex; align-items:center; flex-shrink:0; }
+.card-bell svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round; }
+.card-bell:hover { color:#b3322c; }
+.card-bell--muted { color:var(--muted); }
 
 .empty { color:var(--muted); font-size:14px; padding:10px 0; }
 
@@ -115,3 +136,20 @@ body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-seri
 .card--over { outline:2px dashed var(--teal); outline-offset:3px; }
 .toolbar { align-items:center; gap:12px; }
 .toolbar-hint { margin-right:auto; font-size:12px; color:var(--muted); font-style:italic; }
+
+/* ---- header alarm bell (GLOBAL audio mute) ---- */
+.topbar-right { display:flex; align-items:center; gap:12px; flex:1; justify-content:flex-end;
+  min-width:240px; }
+.alarm-bell { position:relative; display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
+  font:inherit; font-size:12px; padding:7px 10px; border-radius:10px; cursor:pointer;
+  border:1px solid var(--line); background:#fff; color:var(--muted); transition:all .12s; }
+.alarm-bell:hover { border-color:var(--seafoam); }
+.alarm-bell__icon svg { width:18px; height:18px; display:block; fill:none; stroke:currentColor;
+  stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.alarm-bell--active { border-color:var(--danger); color:var(--danger); }
+.alarm-bell--muted { color:var(--muted); background:var(--panel); }
+.alarm-bell__slash { stroke:currentColor; }
+.alarm-bell__muted { font-weight:600; }
+.alarm-bell__badge { min-width:18px; height:18px; padding:0 5px; border-radius:9px;
+  background:var(--danger); color:#fff; font-size:11px; font-weight:700; line-height:18px;
+  text-align:center; }

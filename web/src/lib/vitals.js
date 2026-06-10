@@ -21,29 +21,46 @@ export function fmt(v, d = 1) {
   return Number(v).toFixed(d)
 }
 
-export function checkAlarm(patient, latest) {
-  if (!latest) return { alarm: false, reasons: [] }
+// Effective alarm thresholds for a node (patient overrides fall back to
+// defaults). Exposed so the detail view can show the numeric limits.
+export function getThresholds(patient) {
   const t = patient || {}
-  const hrMin = t.hr_min ?? DEFAULT_THRESHOLDS.hr_min
-  const hrMax = t.hr_max ?? DEFAULT_THRESHOLDS.hr_max
-  const tMin  = t.temp_min ?? DEFAULT_THRESHOLDS.temp_min
-  const tMax  = t.temp_max ?? DEFAULT_THRESHOLDS.temp_max
-  const reasons = []
+  return {
+    hr_min: t.hr_min ?? DEFAULT_THRESHOLDS.hr_min,
+    hr_max: t.hr_max ?? DEFAULT_THRESHOLDS.hr_max,
+    temp_min: t.temp_min ?? DEFAULT_THRESHOLDS.temp_min,
+    temp_max: t.temp_max ?? DEFAULT_THRESHOLDS.temp_max,
+  }
+}
+
+// Returns which vitals are out of range as a map, e.g.
+// { heart_rate: 'high', body_temp: 'low' }. A key is present only when that
+// vital breaches its limit. `alarm` is true when the map is non-empty.
+export function checkAlarm(patient, latest) {
+  if (!latest) return { alarm: false, breaches: {} }
+  const { hr_min: hrMin, hr_max: hrMax, temp_min: tMin, temp_max: tMax } = getThresholds(patient)
+  const breaches = {}
   const hr = Number(latest.heart_rate)
   const tp = Number(latest.body_temp)
-  if (!Number.isNaN(hr) && (hr < hrMin || hr > hrMax)) reasons.push(`HR ${hr} (limit ${hrMin}\u2013${hrMax})`)
-  if (!Number.isNaN(tp) && (tp < tMin || tp > tMax)) reasons.push(`Temp ${tp} (limit ${tMin}\u2013${tMax})`)
-  return { alarm: reasons.length > 0, reasons }
+  if (!Number.isNaN(hr)) {
+    if (hr < hrMin) breaches.heart_rate = 'low'
+    else if (hr > hrMax) breaches.heart_rate = 'high'
+  }
+  if (!Number.isNaN(tp)) {
+    if (tp < tMin) breaches.body_temp = 'low'
+    else if (tp > tMax) breaches.body_temp = 'high'
+  }
+  return { alarm: Object.keys(breaches).length > 0, breaches }
 }
 
 // Overall card state. Inactive takes precedence over alarm (stale data
 // shouldn't flash red as if it were a live emergency).
 export function nodeState(patient, latest, now = Date.now()) {
-  if (!latest) return { state: 'inactive', reasons: [], lastSeenMs: null }
+  if (!latest) return { state: 'inactive', breaches: {}, lastSeenMs: null }
   const age = now - new Date(latest.recorded_at).getTime()
-  if (age > INACTIVE_AFTER_MS) return { state: 'inactive', reasons: [], lastSeenMs: age }
-  const { alarm, reasons } = checkAlarm(patient, latest)
-  return { state: alarm ? 'alarm' : 'ok', reasons, lastSeenMs: age }
+  if (age > INACTIVE_AFTER_MS) return { state: 'inactive', breaches: {}, lastSeenMs: age }
+  const { alarm, breaches } = checkAlarm(patient, latest)
+  return { state: alarm ? 'alarm' : 'ok', breaches, lastSeenMs: age }
 }
 
 export function lastSeenLabel(ms) {
