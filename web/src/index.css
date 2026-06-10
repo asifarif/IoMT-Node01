@@ -153,3 +153,26 @@ body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-seri
 .alarm-bell__badge { min-width:18px; height:18px; padding:0 5px; border-radius:9px;
   background:var(--danger); color:#fff; font-size:11px; font-weight:700; line-height:18px;
   text-align:center; }
+
+/* ---- alert event log ---- */
+.alertlog-controls { display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+.alertlog-status { flex:0 0 auto; min-width:150px; max-width:180px; cursor:pointer; }
+.alertlog-controls .btn { margin-left:auto; }
+.table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:#fff; }
+.log-table { width:100%; border-collapse:collapse; font-size:13px; }
+.log-table th, .log-table td { padding:9px 12px; text-align:left;
+  border-bottom:1px solid var(--line); white-space:nowrap; }
+.log-table th { background:var(--panel); color:var(--teal-dark); font-weight:600; font-size:12px;
+  position:sticky; top:0; }
+.log-table tbody tr:last-child td { border-bottom:none; }
+.log-table tbody tr:hover { background:var(--bg); }
+.log-table td.mono { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; color:var(--muted); }
+.log-table td.empty { text-align:center; color:var(--muted); padding:18px; }
+
+.badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px;
+  font-weight:700; letter-spacing:.03em; }
+.badge--dir { background:var(--danger); color:#fff; }
+.badge--status { border:1px solid transparent; }
+.badge--active { background:#fdecea; color:#b3322c; border-color:var(--danger); }
+.badge--acknowledged { background:#fff6e6; color:#9a6a12; border-color:var(--amber); }
+.badge--resolved { background:#eaf6ef; color:#1c7a43; border-color:#9bd3b1; }

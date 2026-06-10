@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useIomt } from './hooks/useIomt'
+import { useAlerts } from './hooks/useAlerts'
 import { nodeState } from './lib/vitals'
 import { useAlarmSound } from './hooks/useAlarmSound'
 import Dashboard from './components/Dashboard'
 import NodeDetail from './components/NodeDetail'
+import AlertLog from './components/AlertLog'
 import SearchBar from './components/SearchBar'
 import AlarmBell from './components/AlarmBell'
 
@@ -13,8 +15,10 @@ const MUTE_MS = 2 * 60 * 1000
 export default function App() {
   const iomt = useIomt()
   const { patients, readings, manual, nodeOrder, ready, saveOrder } = iomt
+  const { alerts, acknowledgeAlert } = useAlerts()
   const [query, setQuery] = useState('')
   const [openDevice, setOpenDevice] = useState(null)
+  const [view, setView] = useState('dashboard')   // 'dashboard' | 'log'
   const [now, setNow] = useState(Date.now())
 
   // Two mute layers — AUDIO ONLY. Blinking values are never suppressed.
@@ -144,13 +148,21 @@ export default function App() {
         </div>
         <div className="topbar-right">
           <AlarmBell alarmCount={alarmingIds.length} muted={globalMuted} onToggleMute={toggleGlobalMute} />
-          <SearchBar value={query} onChange={setQuery} />
+          <button type="button"
+                  className={['btn', view === 'log' && 'btn-primary'].filter(Boolean).join(' ')}
+                  onClick={() => setView(v => (v === 'log' ? 'dashboard' : 'log'))}>
+            {view === 'log' ? 'Dashboard' : 'Event Log'}
+          </button>
+          {view === 'dashboard' && <SearchBar value={query} onChange={setQuery} />}
         </div>
       </header>
 
       {!ready && <div className="warn">Supabase not configured — set <code>web/.env.local</code> and restart.</div>}
 
-      {openNode ? (
+      {view === 'log' ? (
+        <AlertLog alerts={alerts} patientByDevice={patientByDevice}
+                  onAcknowledge={acknowledgeAlert} />
+      ) : openNode ? (
         <NodeDetail node={openNode} readings={readings} manual={manual}
                     now={now} onBack={() => setOpenDevice(null)} iomt={iomt} />
       ) : (

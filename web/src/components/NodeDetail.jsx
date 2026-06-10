@@ -35,7 +35,7 @@ export default function NodeDetail({ node, readings, manual, now, onBack, iomt }
   return (
     <div className="detail">
       <div className="detail-top">
-        <button className="btn" onClick={onBack}>← Back</button>
+        <button className="btn btn-primary" onClick={onBack}>← Back</button>
         <h2>Vitals — {title}</h2>
         <div className="detail-actions">
           <button className="btn" onClick={() => setEditing(true)} disabled={!iomt.ready}>
